@@ -1,0 +1,4 @@
+export 'package:places_app/src/screens/account/account_screen.dart';
+export 'package:places_app/src/screens/map/map_screen.dart';
+export 'package:places_app/src/screens/place/place_screen.dart';
+export 'package:places_app/src/screens/home/home_screen.dart';
