@@ -53,8 +53,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ? null
               : FloatingActionButton(
                   onPressed: () {
-                    // TODO agregar un nuevo
+                    Navigator.pushNamed(context, 'new_place');
                   },
+                  heroTag: 'new_place',
                   child: const Icon(Icons.add),
                 )),
     );

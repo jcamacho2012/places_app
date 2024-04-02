@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:places_app/src/routes/routes.dart';
+import 'package:provider/provider.dart';
+import 'package:places_app/src/services/services.dart' show PlacesServices;
 
 class MainAPP extends StatelessWidget {
   const MainAPP({super.key});
@@ -22,14 +24,13 @@ class APPState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // return MultiProvider(
-    //   providers: [
-    //     ChangeNotifierProvider(create: (_) => AuthService(), lazy: false),
-    //     ChangeNotifierProvider(create: (_) => CitasDPService(), lazy: false),
-    //     ChangeNotifierProvider(create: (_) => DepositoService(), lazy: false),
-    //   ],
-    //   child: const MainAPP(),
-    // );
-    return const MainAPP();
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => PlacesServices(), lazy: false),
+        // ChangeNotifierProvider(create: (_) => CitasDPService(), lazy: false),
+        // ChangeNotifierProvider(create: (_) => DepositoService(), lazy: false),
+      ],
+      child: const MainAPP(),
+    );
   }
 }

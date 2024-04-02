@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:places_app/src/components/components.dart' show ButtonZoomMap;
 import 'package:places_app/src/data/data.dart';
-
-import '../../model/models.dart' show Place;
+import 'package:places_app/src/model/models.dart' show Place;
+import 'package:places_app/src/services/services.dart' show PlacesServices;
+import 'package:provider/provider.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({Key? key}) : super(key: key);
@@ -17,16 +19,14 @@ class _MapScreenState extends State<MapScreen> {
     zoom: 10,
   );
 
-  bool _showMyPlaces = true;
   bool _isLoading = true;
+  bool _loadingPlaces = false;
   GoogleMapController? mapController;
-  final List<Place> places = listaPlacesVisited();
+  List<Place> places = [];
+  Set<Marker> markers = {};
 
   @override
   Widget build(BuildContext context) {
-    Set<Marker> markers =
-        _showMyPlaces ? _myPlacesMarkers() : _friendsPlacesMarkers();
-
     return Stack(children: [
       GoogleMap(
         mapType: MapType.normal,
@@ -40,69 +40,119 @@ class _MapScreenState extends State<MapScreen> {
         onMapCreated: _onMapCreated,
         markers: markers,
       ),
-      if (_isLoading) // Muestra el indicador de carga si _isLoading es true
+      if (_loadingPlaces)
         const Center(
-          child:
-              CircularProgressIndicator(), // Puedes personalizar este widget según necesites
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              CircularProgressIndicator(),
+              SizedBox(height: 20),
+              Text('Cargando...'),
+            ],
+          ),
         ),
-      if (!_isLoading) _buttonsPlaces(),
+      if (_isLoading)
+        const Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              CircularProgressIndicator(),
+              SizedBox(height: 20),
+              Text('Cargando Mapa...'),
+            ],
+          ),
+        ),
+      if (!_isLoading) _buttonsPlaces(context: context),
       if (!_isLoading) _buttonsZoom(),
     ]);
   }
 
+  @override
+  void initState() {
+    super.initState();
+    getMyPlaces();
+  }
+
+  getMyPlaces() async {
+    final placeService = Provider.of<PlacesServices>(context, listen: false);
+    setState(() {
+      _loadingPlaces = true;
+    });
+    final resultLogin = await placeService.myPlaces();
+    if (resultLogin['state']) {
+      setState(() {
+        places = resultLogin['places'];
+        _loadingPlaces = false;
+      });
+      markers = _myPlacesMarkers();
+    }
+  }
+
   Widget _buttonsZoom() {
     return Positioned(
-        top: 500.0, // Ajusta la posición según necesites
+        bottom: 20.0,
         right: 10.0,
         child: Column(children: <Widget>[
-          FloatingActionButton(
+          ButtonZoomMap(
             onPressed: () {
               mapController?.animateCamera(CameraUpdate.zoomIn());
             },
-            mini: true,
             tooltip: 'Zoom In',
             child: const Icon(Icons.add),
           ),
-          const SizedBox(height: 16),
-          FloatingActionButton(
+          const SizedBox(height: 10),
+          ButtonZoomMap(
             onPressed: () {
               mapController?.animateCamera(CameraUpdate.zoomOut());
             },
-            mini: true,
             tooltip: 'Zoom Out',
             child: const Icon(Icons.remove),
           ),
         ]));
   }
 
-  Widget _buttonsPlaces() {
+  Widget _buttonsPlaces({required BuildContext context}) {
+    double top = MediaQuery.of(context).padding.top;
     return Positioned(
-      top: 40.0,
-      right: 10.0,
-      child: Column(
-        children: [
-          FloatingActionButton(
-            tooltip: 'Mis Lugares Visitados',
-            onPressed: () {
-              setState(() {
-                _showMyPlaces = true;
-              });
-            },
-            child: const Icon(Icons.person),
+        top: top,
+        right: 0,
+        left: 0,
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              ElevatedButton(
+                onPressed: () {
+                  getMyPlaces();
+                  _myPlacesMarkers();
+                  _centerMapOnMyPlaces();
+                },
+                child: const Row(
+                  children: [
+                    Icon(Icons.place),
+                    SizedBox(width: 5),
+                    Text('Mis Lugares'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  _friendsPlacesMarkers();
+                  _centerMapOnMyPlaces();
+                },
+                child: const Row(
+                  children: [
+                    Icon(Icons.place),
+                    SizedBox(width: 5),
+                    Text('Lugares de Amigos'),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          FloatingActionButton(
-            onPressed: () {
-              setState(() {
-                _showMyPlaces = false;
-              });
-            },
-            tooltip: 'Lugares Visitados por Amigos',
-            child: const Icon(Icons.people),
-          ),
-        ],
-      ),
-    );
+        ));
   }
 
   void _onMapCreated(GoogleMapController controller) {
@@ -133,6 +183,8 @@ class _MapScreenState extends State<MapScreen> {
                     fit: BoxFit.cover,
                     width: 100,
                     height: 100,
+                    cacheHeight: 100,
+                    cacheWidth: 100,
                   ),
                 ),
                 const SizedBox(height: 5),
@@ -158,7 +210,7 @@ class _MapScreenState extends State<MapScreen> {
                 ),
                 const SizedBox(height: 10),
                 Text('${place.name} - ${place.location}'),
-                Text('${place.date}'),
+                Text(place.date),
               ],
             ),
           ),
@@ -197,5 +249,29 @@ class _MapScreenState extends State<MapScreen> {
       ));
     }
     return markers;
+  }
+
+  LatLngBounds _boundsFromLatLngList(List<Marker> markers) {
+    double? x0, x1, y0, y1;
+    for (Marker marker in markers) {
+      if (x0 == null) {
+        x0 = x1 = marker.position.latitude;
+        y0 = y1 = marker.position.longitude;
+      } else {
+        if (marker.position.latitude > x1!) x1 = marker.position.latitude;
+        if (marker.position.latitude < x0) x0 = marker.position.latitude;
+        if (marker.position.longitude > y1!) y1 = marker.position.longitude;
+        if (marker.position.longitude < y0!) y0 = marker.position.longitude;
+      }
+    }
+    return LatLngBounds(
+        southwest: LatLng(x0!, y0!), northeast: LatLng(x1!, y1!));
+  }
+
+  void _centerMapOnMyPlaces() {
+    List<Marker> markersList = markers.toList();
+    final LatLngBounds bounds = _boundsFromLatLngList(markersList);
+
+    mapController?.animateCamera(CameraUpdate.newLatLngBounds(bounds, 50));
   }
 }
