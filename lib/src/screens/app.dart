@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:places_app/src/routes/routes.dart';
+import 'package:places_app/src/theme/theme.dart';
 import 'package:provider/provider.dart';
 import 'package:places_app/src/services/services.dart' show PlacesServices;
 
@@ -12,7 +13,7 @@ class MainAPP extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'FMS APP',
-      // theme: AppTheme.ligthTheme,
+      theme: AppTheme.ligthTheme,
       routes: getRoutes(),
       initialRoute: 'home',
     );

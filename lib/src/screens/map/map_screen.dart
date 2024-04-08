@@ -1,9 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:places_app/src/components/components.dart' show ButtonZoomMap;
-import 'package:places_app/src/data/data.dart';
+import 'package:intl/intl.dart';
 import 'package:places_app/src/model/models.dart' show Place;
 import 'package:places_app/src/services/services.dart' show PlacesServices;
+import 'package:places_app/src/theme/theme.dart';
+import 'package:places_app/src/utils/utils_constants.dart';
+import 'package:places_app/src/utils/utils_place.dart' show loadPlaces;
 import 'package:provider/provider.dart';
 
 class MapScreen extends StatefulWidget {
@@ -63,52 +67,64 @@ class _MapScreenState extends State<MapScreen> {
           ),
         ),
       if (!_isLoading) _buttonsPlaces(context: context),
-      if (!_isLoading) _buttonsZoom(),
+      // if (!_isLoading) _buttonsZoom(),
     ]);
   }
 
   @override
   void initState() {
     super.initState();
-    getMyPlaces();
+    // getMyPlaces();
   }
 
   getMyPlaces() async {
-    final placeService = Provider.of<PlacesServices>(context, listen: false);
     setState(() {
       _loadingPlaces = true;
+      places = [];
     });
-    final resultLogin = await placeService.myPlaces();
+
+    List<Place> myPlaces = await loadPlaces();
+    if (myPlaces.isNotEmpty) {
+      setState(() {
+        places = [...myPlaces];
+        _loadingPlaces = false;
+      });
+      Set<Marker> newMarkers = _myPlacesMarkers();
+      setState(() {
+        markers = newMarkers;
+        _centerMapOnMyPlaces();
+      });
+    }
+
+    setState(() {
+      _loadingPlaces = false;
+    });
+  }
+
+  getFriendsPlaces() async {
+    final placeService = Provider.of<PlacesServices>(context, listen: false);
+
+    setState(() {
+      _loadingPlaces = true;
+      places = [];
+    });
+
+    final resultLogin = await placeService.myFriendsPlaces();
     if (resultLogin['state']) {
       setState(() {
         places = resultLogin['places'];
         _loadingPlaces = false;
       });
-      markers = _myPlacesMarkers();
+      Set<Marker> newMarkers = _myPlacesMarkers();
+      setState(() {
+        markers = newMarkers;
+        _centerMapOnMyPlaces();
+      });
     }
-  }
 
-  Widget _buttonsZoom() {
-    return Positioned(
-        bottom: 20.0,
-        right: 10.0,
-        child: Column(children: <Widget>[
-          ButtonZoomMap(
-            onPressed: () {
-              mapController?.animateCamera(CameraUpdate.zoomIn());
-            },
-            tooltip: 'Zoom In',
-            child: const Icon(Icons.add),
-          ),
-          const SizedBox(height: 10),
-          ButtonZoomMap(
-            onPressed: () {
-              mapController?.animateCamera(CameraUpdate.zoomOut());
-            },
-            tooltip: 'Zoom Out',
-            child: const Icon(Icons.remove),
-          ),
-        ]));
+    setState(() {
+      _loadingPlaces = false;
+    });
   }
 
   Widget _buttonsPlaces({required BuildContext context}) {
@@ -125,28 +141,39 @@ class _MapScreenState extends State<MapScreen> {
               ElevatedButton(
                 onPressed: () {
                   getMyPlaces();
-                  _myPlacesMarkers();
-                  _centerMapOnMyPlaces();
                 },
                 child: const Row(
                   children: [
-                    Icon(Icons.place),
+                    Icon(
+                      Icons.place,
+                      size: 14,
+                      color: AppTheme.white,
+                    ),
                     SizedBox(width: 5),
-                    Text('Mis Lugares'),
+                    Text(
+                      'Mis Lugares',
+                      style: TextStyle(color: AppTheme.white),
+                    ),
                   ],
                 ),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () {
-                  _friendsPlacesMarkers();
-                  _centerMapOnMyPlaces();
+                  getFriendsPlaces();
                 },
                 child: const Row(
                   children: [
-                    Icon(Icons.place),
+                    Icon(
+                      Icons.place,
+                      size: 14,
+                      color: AppTheme.white,
+                    ),
                     SizedBox(width: 5),
-                    Text('Lugares de Amigos'),
+                    Text(
+                      'Lugares de Amigos',
+                      style: TextStyle(color: AppTheme.white),
+                    ),
                   ],
                 ),
               ),
@@ -157,6 +184,7 @@ class _MapScreenState extends State<MapScreen> {
 
   void _onMapCreated(GoogleMapController controller) {
     mapController = controller;
+    getMyPlaces();
     setState(() {
       _isLoading = false;
     });
@@ -164,55 +192,105 @@ class _MapScreenState extends State<MapScreen> {
 
   void _onMarkerTapped({required int placeId}) {
     Place place = places.firstWhere((element) => element.id == placeId);
+    const String customDateTimeFormat = UtilsConstants.customDateTimeFormat;
+    const String dateTimeFormat = UtilsConstants.dateTimeFormat;
+
+    DateTime dateTime = DateFormat(dateTimeFormat).parse(place.date);
+    String formattedDate =
+        DateFormat(customDateTimeFormat, 'es').format(dateTime);
+
+    Widget componentPicture = const SizedBox();
+    if (place.pictureUrl.contains('https')) {
+      componentPicture = ClipRRect(
+        borderRadius: BorderRadius.circular(8.0),
+        child: Image.network(
+          place.pictureUrl,
+          fit: BoxFit.cover,
+          width: 100,
+          height: 100,
+          cacheHeight: 100,
+          cacheWidth: 100,
+        ),
+      );
+    } else {
+      File imageFile = File(place.pictureUrl);
+
+      componentPicture = ClipRRect(
+        borderRadius: BorderRadius.circular(8.0),
+        child: Image.file(
+          imageFile,
+          fit: BoxFit.cover,
+          width: 100,
+          height: 100,
+          cacheHeight: 100,
+          cacheWidth: 100,
+        ),
+      );
+    }
 
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
         return Container(
-          height: 200,
+          height: 300,
           color: Colors.white,
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8.0),
-                  child: Image.network(
-                    place.pictureUrl,
-                    fit: BoxFit.cover,
-                    width: 100,
-                    height: 100,
-                    cacheHeight: 100,
-                    cacheWidth: 100,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              componentPicture,
+              const SizedBox(height: 5),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  const Icon(
+                    Icons.comment,
+                    color: AppTheme.primary,
+                    size: 15,
                   ),
-                ),
-                const SizedBox(height: 5),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    const Icon(
-                      Icons.comment,
-                      color: Colors.blue,
-                      size: 15,
-                    ),
-                    const SizedBox(width: 4),
-                    Text("${place.comments}",
-                        style:
-                            const TextStyle(color: Colors.blue, fontSize: 12)),
-                    const SizedBox(width: 10),
-                    const Icon(Icons.favorite, color: Colors.red, size: 15),
-                    const SizedBox(width: 4),
-                    Text("${place.favorites}",
-                        style:
-                            const TextStyle(color: Colors.red, fontSize: 12)),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Text('${place.name} - ${place.location}'),
-                Text(place.date),
-              ],
-            ),
+                  const SizedBox(width: 4),
+                  Text("${place.comments}",
+                      style: const TextStyle(
+                          color: AppTheme.primary, fontSize: 12)),
+                  const SizedBox(width: 10),
+                  const Icon(Icons.favorite, color: Colors.red, size: 15),
+                  const SizedBox(width: 4),
+                  Text("${place.favorites}",
+                      style: const TextStyle(color: Colors.red, fontSize: 12)),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(place.name,
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              Text(
+                place.description,
+                style: const TextStyle(fontSize: 12),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Icon(Icons.location_on,
+                      size: 14, color: AppTheme.primary),
+                  const SizedBox(width: 5),
+                  Text(place.location, style: const TextStyle(fontSize: 10)),
+                ],
+              ),
+              const SizedBox(height: 5),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Icon(Icons.calendar_today,
+                      size: 12, color: AppTheme.primary),
+                  const SizedBox(width: 5),
+                  Text(formattedDate, style: const TextStyle(fontSize: 10)),
+                ],
+              )
+            ],
           ),
         );
       },
@@ -223,31 +301,19 @@ class _MapScreenState extends State<MapScreen> {
     Set<Marker> markers = {};
     for (Place place in places) {
       markers.add(Marker(
-        markerId: MarkerId(place.id.toString()),
-        position: LatLng(place.latitude, place.longitude),
-        onTap: () => _onMarkerTapped(placeId: place.id),
-        infoWindow: InfoWindow(
-          title: place.name,
-          snippet: place.location,
-        ),
-      ));
+          markerId: MarkerId(place.id.toString()),
+          position: LatLng(place.latitude, place.longitude),
+          onTap: () => _onMarkerTapped(placeId: place.id),
+          visible: true,
+          infoWindow: InfoWindow(
+            title: place.name,
+            snippet: place.location,
+          ),
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueAzure,
+          )));
     }
-    return markers;
-  }
 
-  Set<Marker> _friendsPlacesMarkers() {
-    Set<Marker> markers = {};
-    for (Place place in places) {
-      markers.add(Marker(
-        markerId: MarkerId(place.id.toString()),
-        position: LatLng(place.latitude, place.longitude),
-        onTap: () => _onMarkerTapped(placeId: place.id),
-        infoWindow: InfoWindow(
-          title: place.name,
-          snippet: place.location,
-        ),
-      ));
-    }
     return markers;
   }
 
@@ -270,6 +336,7 @@ class _MapScreenState extends State<MapScreen> {
 
   void _centerMapOnMyPlaces() {
     List<Marker> markersList = markers.toList();
+    if (markersList.isEmpty) return;
     final LatLngBounds bounds = _boundsFromLatLngList(markersList);
 
     mapController?.animateCamera(CameraUpdate.newLatLngBounds(bounds, 50));

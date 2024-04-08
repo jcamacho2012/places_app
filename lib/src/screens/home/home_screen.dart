@@ -27,37 +27,29 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
-          body: IndexedStack(
-            index: _currentIndex,
-            children: _screens,
-          ),
-          bottomNavigationBar: BottomNavigationBar(
-            currentIndex: _currentIndex,
-            items: const <BottomNavigationBarItem>[
-              BottomNavigationBarItem(
-                icon: Icon(Icons.place),
-                label: 'Lugares',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.map),
-                label: 'Mapa',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.account_circle),
-                label: 'Cuenta',
-              ),
-            ],
-            onTap: _changeScreen,
-          ),
-          floatingActionButton: _currentIndex != 0
-              ? null
-              : FloatingActionButton(
-                  onPressed: () {
-                    Navigator.pushNamed(context, 'new_place');
-                  },
-                  heroTag: 'new_place',
-                  child: const Icon(Icons.add),
-                )),
+        body: IndexedStack(
+          index: _currentIndex,
+          children: _screens,
+        ),
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          items: const <BottomNavigationBarItem>[
+            BottomNavigationBarItem(
+              icon: Icon(Icons.place),
+              label: 'Lugares',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.map),
+              label: 'Mapa',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.account_circle),
+              label: 'Cuenta',
+            ),
+          ],
+          onTap: _changeScreen,
+        ),
+      ),
     );
   }
 }

@@ -3,8 +3,8 @@ import 'package:places_app/src/connection/connection.dart' show getJsonData;
 import 'package:places_app/src/model/models.dart' show PlaceResponse, Place;
 
 class PlacesServices extends ChangeNotifier {
-  Future<Map<String, dynamic>> myPlaces() async {
-    final jsonData = await getJsonData(endpoint: 'my_places/1');
+  Future<Map<String, dynamic>> myFriendsPlaces() async {
+    final jsonData = await getJsonData(endpoint: 'my_friends_places/1');
 
     bool estado = false;
     String messageApi = '';

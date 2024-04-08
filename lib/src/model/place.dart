@@ -25,6 +25,19 @@ class Place {
     required this.favorites,
   });
 
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'location': location,
+        'latitude': latitude,
+        'longitude': longitude,
+        'description': description,
+        'date': date,
+        'pictureUrl': pictureUrl,
+        'comments': comments,
+        'favorites': favorites,
+      };
+
   factory Place.fromJson(String str) => Place.fromMap(json.decode(str));
 
   factory Place.fromMap(Map<String, dynamic> resp) {

@@ -1,9 +1,17 @@
+import 'dart:io';
+import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter/material.dart';
 import 'package:places_app/src/components/components.dart'
     show WelcomeWidget, SkeletonPlaces;
 import 'package:places_app/src/model/models.dart' show Place;
-import 'package:provider/provider.dart';
-import "package:places_app/src/services/services.dart" show PlacesServices;
+import 'package:places_app/src/theme/theme.dart';
+import 'package:places_app/src/utils/utils_constants.dart';
+import 'package:places_app/src/utils/utils_place.dart'
+    show deletePlace, loadPlaces;
+import 'package:places_app/src/components/show_snack_bar.dart'
+    show showSnackBar;
+import 'package:flutter_slidable/flutter_slidable.dart';
 
 class PlaceScreen extends StatefulWidget {
   const PlaceScreen({Key? key}) : super(key: key);
@@ -18,21 +26,43 @@ class _PlaceScreenState extends State<PlaceScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        const Padding(
-            padding: EdgeInsets.only(top: 30, right: 20, left: 20, bottom: 30),
-            child: WelcomeWidget()),
-        const SizedBox(height: 10),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20),
-          child: Text(
-            'Lugares visitados',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
+    return Stack(
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            const Padding(
+                padding:
+                    EdgeInsets.only(top: 30, right: 20, left: 20, bottom: 30),
+                child: WelcomeWidget()),
+            const SizedBox(height: 10),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                'Lugares visitados',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            renderPlacesVisited(places),
+          ],
         ),
-        renderPlacesVisited(places),
+        Positioned(
+            bottom: 20,
+            right: 10,
+            child: FloatingActionButton(
+              onPressed: () async {
+                final successNewPlace =
+                    await Navigator.pushNamed(context, 'new_place');
+                if (successNewPlace == true) {
+                  getPlacesVisited();
+                }
+              },
+              heroTag: 'new_place',
+              child: const Icon(
+                Icons.add,
+                color: Colors.white,
+              ),
+            ))
       ],
     );
   }
@@ -41,20 +71,24 @@ class _PlaceScreenState extends State<PlaceScreen> {
   void initState() {
     super.initState();
     getPlacesVisited();
+    initializeDateFormatting();
   }
 
   getPlacesVisited() async {
-    final placeService = Provider.of<PlacesServices>(context, listen: false);
     setState(() {
       _loading = true;
+      places = [];
     });
-    final resultLogin = await placeService.myPlaces();
-    if (resultLogin['state']) {
+    List<Place> myPlaces = await loadPlaces();
+    if (myPlaces.isNotEmpty) {
       setState(() {
-        places = resultLogin['places'];
+        places = [...myPlaces];
         _loading = false;
       });
     }
+    setState(() {
+      _loading = false;
+    });
   }
 
   Widget renderPlacesVisited(List<Place> places) {
@@ -66,6 +100,36 @@ class _PlaceScreenState extends State<PlaceScreen> {
           itemBuilder: (BuildContext context, int index) {
             return const SkeletonPlaces();
           });
+    }
+
+    if (places.isEmpty) {
+      return Expanded(
+          child: RefreshIndicator(
+        displacement: 10,
+        color: const Color(0xff00209f),
+        strokeWidth: 2,
+        triggerMode: RefreshIndicatorTriggerMode.onEdge,
+        onRefresh: () async {
+          getPlacesVisited();
+        },
+        child: ListView.builder(
+            itemCount: 1,
+            itemBuilder: (context, index) {
+              return const Padding(
+                padding: EdgeInsets.all(50),
+                child: Center(
+                  child: Column(
+                    children: [
+                      Icon(Icons.place, size: 100, color: Colors.grey),
+                      SizedBox(height: 10),
+                      Text('No hay lugares visitados',
+                          style: TextStyle(fontSize: 18)),
+                    ],
+                  ),
+                ),
+              );
+            }),
+      ));
     }
 
     return Expanded(
@@ -81,23 +145,43 @@ class _PlaceScreenState extends State<PlaceScreen> {
           itemCount: places.length,
           itemBuilder: (context, index) {
             final Place place = places[index];
-            return Card(
-              elevation: 5,
-              margin: const EdgeInsets.all(10),
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: ListTile(
-                  title: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      renderTitlePlace(place),
-                      const SizedBox(height: 5),
-                      renderSubtitlePlace(place),
-                      const SizedBox(height: 5),
-                      renderSocialInfo(place)
-                    ],
+            return Slidable(
+              actionPane: const SlidableDrawerActionPane(),
+              actionExtentRatio: 0.25,
+              secondaryActions: <Widget>[
+                IconSlideAction(
+                  caption: 'Eliminar',
+                  color: Colors.red,
+                  icon: Icons.delete,
+                  onTap: () => _showConfirmationDialog(context, place),
+                ),
+              ],
+              child: Card(
+                elevation: 5,
+                margin: const EdgeInsets.all(10),
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: ListTile(
+                    title: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            renderTitlePlace(place),
+                            const SizedBox(height: 5),
+                            renderDescriptionPlace(place),
+                            const SizedBox(height: 5),
+                            renderSubtitlePlace(place),
+                            const SizedBox(height: 10),
+                            renderSocialInfo(place)
+                          ],
+                        ),
+                        renderPicturePlace(place)
+                      ],
+                    ),
+                    // trailing: renderPicturePlace(place),
                   ),
-                  trailing: renderPicturePlace(place),
                 ),
               ),
             );
@@ -107,21 +191,117 @@ class _PlaceScreenState extends State<PlaceScreen> {
     );
   }
 
+  _showConfirmationDialog(BuildContext context, Place place) {
+    showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Eliminar ${place.name}'),
+            content: const Flexible(
+              child: Text('¿Estás seguro de eliminar este lugar?',
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
+                  style: TextStyle(
+                    fontSize: 16,
+                  )),
+            ),
+            actions: [
+              TextButton(
+                style: TextButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10))),
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text('Cancelar'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  confirmDeletePlace(place);
+                },
+                style: TextButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10))),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.delete, color: Colors.white),
+                    SizedBox(width: 5),
+                    Text('Eliminar', style: TextStyle(color: Colors.white)),
+                  ],
+                ),
+              )
+            ],
+          );
+        });
+  }
+
+  void confirmDeletePlace(Place place) async {
+    await deletePlace(place.id);
+    getPlacesVisited();
+    if (context.mounted) {
+      showSnackBar(
+          icon: const Icon(
+            Icons.check_circle,
+            color: Colors.white,
+          ),
+          backgroundColor: Colors.green,
+          context: context,
+          message: 'Registro Eliminado');
+      Navigator.pop(context);
+    }
+  }
+
   Widget renderTitlePlace(Place place) {
     return Text(place.name,
         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14));
   }
 
+  Widget renderDescriptionPlace(Place place) {
+    return Text(place.description, style: const TextStyle(fontSize: 12));
+  }
+
   Widget renderSubtitlePlace(Place place) {
-    return Text("${place.location} - ${place.date}",
-        style: const TextStyle(fontSize: 12));
+    const String customDateTimeFormat = UtilsConstants.customDateTimeFormat;
+    const String dateTimeFormat = UtilsConstants.dateTimeFormat;
+
+    DateTime dateTime = DateFormat(dateTimeFormat).parse(place.date);
+    String formattedDate =
+        DateFormat(customDateTimeFormat, 'es').format(dateTime);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Icon(Icons.location_on, size: 14, color: AppTheme.primary),
+            const SizedBox(width: 5),
+            Text(place.location, style: const TextStyle(fontSize: 10)),
+          ],
+        ),
+        const SizedBox(height: 5),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Icon(Icons.calendar_today, size: 12, color: AppTheme.primary),
+            const SizedBox(width: 5),
+            Text(formattedDate, style: const TextStyle(fontSize: 10)),
+          ],
+        )
+      ],
+    );
   }
 
   Widget renderPicturePlace(Place place) {
+    File imageFile = File(place.pictureUrl);
     return ClipRRect(
       borderRadius: BorderRadius.circular(8.0),
-      child: Image.network(
-        place.pictureUrl,
+      child: Image.file(
+        imageFile,
         fit: BoxFit.cover,
         width: 100,
         height: 100,
@@ -137,12 +317,12 @@ class _PlaceScreenState extends State<PlaceScreen> {
       children: <Widget>[
         const Icon(
           Icons.comment,
-          color: Colors.blue,
+          color: AppTheme.primary,
           size: 15,
         ),
         const SizedBox(width: 4),
         Text("${place.comments}",
-            style: const TextStyle(color: Colors.blue, fontSize: 12)),
+            style: const TextStyle(color: AppTheme.primary, fontSize: 12)),
         const SizedBox(width: 10),
         const Icon(Icons.favorite, color: Colors.red, size: 15),
         const SizedBox(width: 4),
