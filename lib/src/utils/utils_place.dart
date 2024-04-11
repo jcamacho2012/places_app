@@ -9,6 +9,7 @@ Future<List<Place>> loadPlaces() async {
   if (placesString == null) return [];
 
   final List<dynamic> jsonData = json.decode(placesString);
+
   return jsonData.map((item) => Place.fromMap(item)).toList();
 }
 

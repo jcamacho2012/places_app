@@ -33,9 +33,7 @@ class IconNotification extends StatelessWidget {
           ),
         ],
       ),
-      onPressed: () {
-        // TODO: Implementar la navegación a la pantalla de notificaciones
-      },
+      onPressed: null,
     );
   }
 }

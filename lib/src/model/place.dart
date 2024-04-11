@@ -8,7 +8,7 @@ class Place {
   double longitude;
   String description;
   String date;
-  String pictureUrl;
+  List<String> pictureUrls;
   int comments;
   int favorites;
 
@@ -21,7 +21,7 @@ class Place {
     required this.description,
     required this.date,
     required this.comments,
-    required this.pictureUrl,
+    required this.pictureUrls,
     required this.favorites,
   });
 
@@ -33,7 +33,7 @@ class Place {
         'longitude': longitude,
         'description': description,
         'date': date,
-        'pictureUrl': pictureUrl,
+        'pictureUrls': List<dynamic>.from(pictureUrls.map((x) => x)),
         'comments': comments,
         'favorites': favorites,
       };
@@ -50,7 +50,7 @@ class Place {
       description: resp['description'],
       date: resp['date'],
       comments: resp['comments'],
-      pictureUrl: resp['pictureUrl'],
+      pictureUrls: List<String>.from(resp['pictureUrls'].map((x) => x)),
       favorites: resp['favorites'],
     );
   }

@@ -7,22 +7,17 @@ class WelcomeWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return const Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: <Widget>[
-        const Text(
+        Text(
           'Bienvenido, José',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         Row(
           children: <Widget>[
-            const IconNotification(),
-            IconButton(
-              icon: const Icon(Icons.settings),
-              onPressed: () {
-                // TODO: Implementar la navegación a la pantalla de configuración
-              },
-            ),
+            IconNotification(),
+            IconButton(icon: Icon(Icons.settings), onPressed: null),
           ],
         ),
       ],

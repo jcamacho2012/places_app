@@ -1,8 +1,8 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:places_app/src/components/components.dart'
+    show CollaguePicturePlace;
 import 'package:places_app/src/model/models.dart' show Place;
 import 'package:places_app/src/services/services.dart' show PlacesServices;
 import 'package:places_app/src/theme/theme.dart';
@@ -25,6 +25,7 @@ class _MapScreenState extends State<MapScreen> {
 
   bool _isLoading = true;
   bool _loadingPlaces = false;
+  bool _viewMyPlaces = true;
   GoogleMapController? mapController;
   List<Place> places = [];
   Set<Marker> markers = {};
@@ -67,14 +68,12 @@ class _MapScreenState extends State<MapScreen> {
           ),
         ),
       if (!_isLoading) _buttonsPlaces(context: context),
-      // if (!_isLoading) _buttonsZoom(),
     ]);
   }
 
   @override
   void initState() {
     super.initState();
-    // getMyPlaces();
   }
 
   getMyPlaces() async {
@@ -140,8 +139,15 @@ class _MapScreenState extends State<MapScreen> {
             children: [
               ElevatedButton(
                 onPressed: () {
-                  getMyPlaces();
+                  setState(() {
+                    _viewMyPlaces = true;
+                    getMyPlaces();
+                  });
                 },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                      _viewMyPlaces ? AppTheme.primary : Colors.transparent,
+                ),
                 child: const Row(
                   children: [
                     Icon(
@@ -160,8 +166,15 @@ class _MapScreenState extends State<MapScreen> {
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () {
-                  getFriendsPlaces();
+                  setState(() {
+                    _viewMyPlaces = false;
+                    getFriendsPlaces();
+                  });
                 },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                      _viewMyPlaces ? Colors.transparent : AppTheme.primary,
+                ),
                 child: const Row(
                   children: [
                     Icon(
@@ -199,35 +212,6 @@ class _MapScreenState extends State<MapScreen> {
     String formattedDate =
         DateFormat(customDateTimeFormat, 'es').format(dateTime);
 
-    Widget componentPicture = const SizedBox();
-    if (place.pictureUrl.contains('https')) {
-      componentPicture = ClipRRect(
-        borderRadius: BorderRadius.circular(8.0),
-        child: Image.network(
-          place.pictureUrl,
-          fit: BoxFit.cover,
-          width: 100,
-          height: 100,
-          cacheHeight: 100,
-          cacheWidth: 100,
-        ),
-      );
-    } else {
-      File imageFile = File(place.pictureUrl);
-
-      componentPicture = ClipRRect(
-        borderRadius: BorderRadius.circular(8.0),
-        child: Image.file(
-          imageFile,
-          fit: BoxFit.cover,
-          width: 100,
-          height: 100,
-          cacheHeight: 100,
-          cacheWidth: 100,
-        ),
-      );
-    }
-
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
@@ -238,7 +222,10 @@ class _MapScreenState extends State<MapScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              componentPicture,
+              CollaguePicturePlace(
+                place: place,
+                type: 'GALLERY',
+              ),
               const SizedBox(height: 5),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,

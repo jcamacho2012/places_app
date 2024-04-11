@@ -13,7 +13,6 @@ FutureOr<String?> getPlaceName(Position position) async {
       return '${place.locality}, ${place.country}';
     }
   } catch (e) {
-    print(e);
     return null;
   }
   return null;

@@ -9,10 +9,6 @@
         android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <meta-data
-        android:name="com.google.android.geo.API_KEY"
-        android:value="AIzaSyAYUnsPqEB5qayQITQQJ_ho4qX7PO_PZp4"
-    />
     <uses-permission
         android:name="android.permission.ACCESS_FINE_LOCATION" />
 <uses-permission
@@ -22,10 +18,11 @@
     <application
         android:label="places_app"
         android:name="${applicationName}"
+        android:requestLegacyExternalStorage="true"
         android:icon="@mipmap/ic_launcher">
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="YOUR_API_KEY"
+            android:value="YOUR_API_KEY_HERE" />
         />
         <activity
             android:name=".MainActivity"
@@ -42,10 +39,6 @@
             <meta-data
                 android:name="io.flutter.embedding.android.NormalTheme"
                 android:resource="@style/NormalTheme"
-            />
-            <meta-data
-                android:name="com.google.android.geo.API_KEY"
-                android:value="AIzaSyAYUnsPqEB5qayQITQQJ_ho4qX7PO_PZp4"
             />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

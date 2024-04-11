@@ -6,6 +6,10 @@
 	<string>Necesitamos tu ubicación para mostrarla en el mapa</string>
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>Necesitamos tu ubicación para mostrarla en el mapa</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Necesitamos acceso a tu galería de imágenes</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Necesitamos acceso a tu cámara</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

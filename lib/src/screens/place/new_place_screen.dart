@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:flutter/widgets.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
@@ -25,7 +24,7 @@ class NewPlaceScreen extends StatefulWidget {
 class _NewPlaceScreenState extends State<NewPlaceScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  List<File> _images = [];
+  final List<File> _images = [];
   Position? currentLocation;
   String? placeName;
   bool _loadingLocation = false;
@@ -39,7 +38,6 @@ class _NewPlaceScreenState extends State<NewPlaceScreen> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     initCurrentLocation();
   }
@@ -257,9 +255,9 @@ class _NewPlaceScreenState extends State<NewPlaceScreen> {
     final ImagePicker picker = ImagePicker();
 
     if (source == ImageSource.gallery) {
-      final List<XFile>? pickedFiles = await picker.pickMultiImage();
+      final List<XFile> pickedFiles = await picker.pickMultiImage();
 
-      if (pickedFiles != null && pickedFiles.isNotEmpty) {
+      if (pickedFiles.isNotEmpty) {
         setState(() {
           _images.addAll(pickedFiles.map((file) => File(file.path)).toList());
         });
@@ -298,15 +296,24 @@ class _NewPlaceScreenState extends State<NewPlaceScreen> {
       longitude: currentLocation!.longitude,
       description: description,
       date: formattedDate,
-      pictureUrl: imagePaths.isNotEmpty ? imagePaths.first : '',
+      pictureUrls: imagePaths,
       comments: 0,
       favorites: 0,
     );
 
     await addPlace(newPlace);
-    if (context.mounted) {
-      Navigator.pop(context, true);
-    }
+    if (!context.mounted) return;
+
+    showSnackBar(
+        icon: const Icon(
+          Icons.check_circle,
+          color: Colors.white,
+        ),
+        backgroundColor: Colors.green,
+        context: context,
+        message: 'Registro exitoso');
+
+    Navigator.pop(context, true);
   }
 
   bool _validationFields() {

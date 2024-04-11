@@ -1,9 +1,8 @@
-import 'dart:io';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter/material.dart';
 import 'package:places_app/src/components/components.dart'
-    show WelcomeWidget, SkeletonPlaces;
+    show WelcomeWidget, SkeletonPlaces, CollaguePicturePlace;
 import 'package:places_app/src/model/models.dart' show Place;
 import 'package:places_app/src/theme/theme.dart';
 import 'package:places_app/src/utils/utils_constants.dart';
@@ -146,41 +145,51 @@ class _PlaceScreenState extends State<PlaceScreen> {
           itemBuilder: (context, index) {
             final Place place = places[index];
             return Slidable(
-              actionPane: const SlidableDrawerActionPane(),
-              actionExtentRatio: 0.25,
-              secondaryActions: <Widget>[
-                IconSlideAction(
-                  caption: 'Eliminar',
-                  color: Colors.red,
-                  icon: Icons.delete,
-                  onTap: () => _showConfirmationDialog(context, place),
-                ),
-              ],
-              child: Card(
-                elevation: 5,
-                margin: const EdgeInsets.all(10),
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: ListTile(
-                    title: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            renderTitlePlace(place),
-                            const SizedBox(height: 5),
-                            renderDescriptionPlace(place),
-                            const SizedBox(height: 5),
-                            renderSubtitlePlace(place),
-                            const SizedBox(height: 10),
-                            renderSocialInfo(place)
-                          ],
-                        ),
-                        renderPicturePlace(place)
-                      ],
+              endActionPane: ActionPane(
+                extentRatio: 0.30,
+                motion: const ScrollMotion(),
+                children: [
+                  SlidableAction(
+                    onPressed: (_) => _showConfirmationDialog(context, place),
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    icon: Icons.delete,
+                    label: 'Eliminar',
+                  ),
+                ],
+              ),
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.pushNamed(context, 'place_details',
+                      arguments: place);
+                },
+                child: Card(
+                  elevation: 5,
+                  margin: const EdgeInsets.all(10),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: ListTile(
+                      title: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              renderTitlePlace(place),
+                              const SizedBox(height: 5),
+                              renderDescriptionPlace(place),
+                              const SizedBox(height: 5),
+                              renderSubtitlePlace(place),
+                              const SizedBox(height: 10),
+                              renderSocialInfo(place)
+                            ],
+                          ),
+                          CollaguePicturePlace(
+                            place: place,
+                          )
+                        ],
+                      ),
                     ),
-                    // trailing: renderPicturePlace(place),
                   ),
                 ),
               ),
@@ -241,17 +250,17 @@ class _PlaceScreenState extends State<PlaceScreen> {
   void confirmDeletePlace(Place place) async {
     await deletePlace(place.id);
     getPlacesVisited();
-    if (context.mounted) {
-      showSnackBar(
-          icon: const Icon(
-            Icons.check_circle,
-            color: Colors.white,
-          ),
-          backgroundColor: Colors.green,
-          context: context,
-          message: 'Registro Eliminado');
-      Navigator.pop(context);
-    }
+    if (!context.mounted) return;
+
+    showSnackBar(
+        icon: const Icon(
+          Icons.check_circle,
+          color: Colors.white,
+        ),
+        backgroundColor: Colors.green,
+        context: context,
+        message: 'Registro Eliminado');
+    Navigator.pop(context);
   }
 
   Widget renderTitlePlace(Place place) {
@@ -293,21 +302,6 @@ class _PlaceScreenState extends State<PlaceScreen> {
           ],
         )
       ],
-    );
-  }
-
-  Widget renderPicturePlace(Place place) {
-    File imageFile = File(place.pictureUrl);
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8.0),
-      child: Image.file(
-        imageFile,
-        fit: BoxFit.cover,
-        width: 100,
-        height: 100,
-        cacheHeight: 100,
-        cacheWidth: 100,
-      ),
     );
   }
 
